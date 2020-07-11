@@ -6,15 +6,17 @@ using UnityEngine.InputSystem;
 public class playerController : MonoBehaviour
 {
     //misc components
-    public GameObject spotLight;
     public float hp = 0;
-    private Animator anim;
-    private GameObject g;
     private Rigidbody2D rb2d;
     private PlayerControll controls;
     private SpriteRenderer sprite;
     private float colorChange = 0.1f;
-    
+
+    //controls
+    //private List<float> inputs;
+    private float[] inputs = new float[6];
+    Vector2 direction = new Vector2();
+
     //movement
     public float speed = 4f;
     private Vector2 move;
@@ -37,10 +39,21 @@ public class playerController : MonoBehaviour
         controls = new PlayerControll();
 
         controls.Gameplay.move.performed += ctx => move = ctx.ReadValue<Vector2>();
-        controls.Gameplay.move.canceled += ctx => move = Vector2.zero;
+        controls.Gameplay.Button1.performed += ctx => inputs[0] = (ctx.ReadValue<float>());
+        controls.Gameplay.Button1.canceled += ctx => inputs[0] = 0f;
+        controls.Gameplay.Button2.performed += ctx => inputs[1] = (ctx.ReadValue<float>());
+        controls.Gameplay.Button2.canceled += ctx => inputs[1] = 0f;
+        controls.Gameplay.Button3.performed += ctx => inputs[2] = (ctx.ReadValue<float>());
+        controls.Gameplay.Button3.canceled += ctx => inputs[2] = 0f;
+        controls.Gameplay.Button4.performed += ctx => inputs[3] = (ctx.ReadValue<float>());
+        controls.Gameplay.Button4.canceled += ctx => inputs[3] = 0f;
+        controls.Gameplay.Button5.performed += ctx => inputs[4] = (ctx.ReadValue<float>());
+        controls.Gameplay.Button5.canceled += ctx => inputs[4] = 0f;
+        controls.Gameplay.Button6.performed += ctx => inputs[5] = (ctx.ReadValue<float>());
+        controls.Gameplay.Button6.canceled += ctx => inputs[5] = 0f;
 
-        controls.Gameplay.moveLight.performed += ctx => movelight = ctx.ReadValue<Vector2>();
-        controls.Gameplay.moveLight.canceled += ctx => movelight = Vector2.zero;
+        controls.Gameplay.move.canceled += ctx => move = Vector2.zero;
+        
         rb2d = GetComponent<Rigidbody2D>();
         sprite = GetComponent<SpriteRenderer>();
 
@@ -48,21 +61,25 @@ public class playerController : MonoBehaviour
 
     void Start()
     {
-        anim = GetComponent<Animator>();
-        g = Instantiate(spotLight, transform.position, Quaternion.identity);
-        g.transform.parent = null;
     }
 
     // Update is called once per frame
     void Update()
     {
         //Debug.Log(Gamepad.current.name);   
-        controls.Gameplay.shoot.canceled += ctx => Shoot();
+        controls.Gameplay.Button5.canceled += ctx => Shoot();
+        float h = inputs[2] + -1 * inputs[3];
+        float v = inputs[0] + -1 * inputs[1];
 
-        anim.SetFloat("Xspeed", move.x);
-        anim.SetFloat("Yspeed", move.y);
-        anim.SetFloat("Speed", move.magnitude);
+        direction = new Vector2(transform.position.x + h, transform.position.y + v);
 
+        Debug.Log(direction);
+         if(h > 0.1f) {
+            firePoint.transform.localPosition = new Vector3(0.65f, firePoint.transform.localPosition.y, firePoint.transform.localPosition.z);
+        }else if (h < -0.1f)
+        {
+            firePoint.transform.localPosition = new Vector3(-0.65f, firePoint.transform.localPosition.y, firePoint.transform.position.z);
+        }
         if (invincible) {
             if (Time.time > colorChange) {
                 colorChange = Time.time + 0.1f;
@@ -70,7 +87,6 @@ public class playerController : MonoBehaviour
             }
             if( Time.time - ItimeStart > Itime)
             {
-                Debug.Log("vincible");
                 invincible = false;
                 sprite.color = Color.white;
             }
@@ -87,8 +103,9 @@ public class playerController : MonoBehaviour
         }
         Mathf.Clamp(fixedVelocity.x, 0f, speed);
         Mathf.Clamp(fixedVelocity.y, 0f, speed);
-        rb2d.AddForce(move * speed);
-        g.transform.Translate(movelight * 0.05f, Space.World);
+        transform.position = Vector2.MoveTowards(transform.position, direction, speed * Time.deltaTime);
+
+        //rb2d.AddForce(move * speed);
         rb2d.velocity = fixedVelocity;
     }
 
@@ -102,6 +119,9 @@ public class playerController : MonoBehaviour
             {
             GameObject bulletObj = Instantiate(shuriken, firePoint.transform.position, firePoint.transform.rotation);
             //bulletObj.tag = "PlayerBullet";
+            Vector2 bulletDirection = new Vector2((inputs[2] + -1 * inputs[3]), (inputs[0] + -1 * inputs[1]));
+
+            bulletObj.GetComponent<bulletController>().direction = bulletDirection == Vector2.zero ? Vector2.right : bulletDirection;
             lastFireTime = Time.time;
         }
     }
